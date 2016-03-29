@@ -57,11 +57,9 @@ function archive_devstack_logs() {
 
     for i in `ls -A $DEVSTACK_LOGS`
     do
-        echo "Doing $i"
         if [ -h "$DEVSTACK_LOGS/$i" ]
         then
                 REAL=$(readlink "$DEVSTACK_LOGS/$i")
-		echo "gzip file $REAL"
                 $GZIP -c "$REAL" > "$LOG_DST_DEVSTACK/$i.gz" || emit_warning "L38: Failed to archive devstack logs: $i"
         fi
     done
