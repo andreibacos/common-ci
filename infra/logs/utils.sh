@@ -1,3 +1,27 @@
+#!/bin/bash
+set -e
+
+BASEDIR=$(dirname $0)
+LOG_DST="/home/ubuntu/aggregate"
+
+TAR="tar"
+GZIP="gzip -f"
+
+function emit_error() {
+    echo "ERROR: $1"
+    exit 1
+}
+
+function emit_warning() {
+    echo "WARNING: $1"
+    return 0
+}
+
+function emit_info() {
+    echo "INFO: $1"
+    return 0
+}
+
 function run_wsman_cmd() {
     local host=$1
     local cmd=$2
@@ -38,14 +62,14 @@ function get_win_time() {
 function get_win_hotfixes_log() {
     local win_host=$1
     local log_file=$2
-    echo "Getting hotfixes details for host: $win_host"
+    emit_info "Getting hotfixes details for host: $win_host"
     get_win_hotfixes $win_host > $log_file
 }
 
 function get_win_system_info_log() {
     local win_host=$1
     local log_file=$2
-    echo "Getting system info for host: $win_host"
+    emit_info "Getting system info for host: $win_host"
     get_win_system_info $win_host > $log_file
 }
 
@@ -74,13 +98,84 @@ function check_host_time() {
     local delta2=$((local_time - host2_time))
     if [ ${delta1#-} -gt 120 ];
     then
-        echo "Host $host1 time offset compared to this host is too high: $delta"
+        emit_info "Host $host1 time offset compared to this host is too high: $delta"
         return 1
     fi
     if [ ${delta2#-} -gt 120 ];
     then
-        echo "Host $host2 time offset compared to this host is too high: $delta"
+        emit_info "Host $host2 time offset compared to this host is too high: $delta"
         return 1
     fi
     return 0
 }
+
+function archive_devstack_logs() {
+    local LOG_DST_DEVSTACK=${1:-$LOG_DST/devstack-logs}
+    local DEVSTACK_LOGS="/opt/stack/logs/screen"
+
+    if [ ! -d "$LOG_DST_DEVSTACK" ]
+    then
+        mkdir -p "$LOG_DST_DEVSTACK" || emit_error "L30: Failed to create $LOG_DST_DEVSTACK"
+    fi
+
+    for i in `ls -A $DEVSTACK_LOGS`
+    do
+        if [ -h "$DEVSTACK_LOGS/$i" ]
+        then
+                REAL=$(readlink "$DEVSTACK_LOGS/$i")
+                $GZIP -c "$REAL" > "$LOG_DST_DEVSTACK/$i.gz" || emit_warning "L38: Failed to archive devstack logs: $i"
+        fi
+    done
+    $GZIP -c /var/log/mysql/error.log > "$LOG_DST_DEVSTACK/mysql_error.log.gz"
+    $GZIP -c /var/log/cloud-init.log > "$LOG_DST_DEVSTACK/cloud-init.log.gz"
+    $GZIP -c /var/log/cloud-init-output.log > "$LOG_DST_DEVSTACK/cloud-init-output.log.gz"
+    $GZIP -c /var/log/dmesg > "$LOG_DST_DEVSTACK/dmesg.log.gz"
+    $GZIP -c /var/log/kern.log > "$LOG_DST_DEVSTACK/kern.log.gz"
+    $GZIP -c /var/log/syslog > "$LOG_DST_DEVSTACK/syslog.log.gz"
+
+    mkdir -p "$LOG_DST_DEVSTACK/rabbitmq"
+    cp /var/log/rabbitmq/* "$LOG_DST_DEVSTACK/rabbitmq"
+    sudo rabbitmqctl status > "$LOG_DST_DEVSTACK/rabbitmq/status.txt" 2>&1
+    $GZIP $LOG_DST_DEVSTACK/rabbitmq/*
+    mkdir -p "$LOG_DST_DEVSTACK/openvswitch"
+    cp /var/log/openvswitch/* "$LOG_DST_DEVSTACK/openvswitch"
+    $GZIP $LOG_DST_DEVSTACK/openvswitch/*
+}
+
+function archive_devstack_configs() {
+    local CONFIG_DST_DEVSTACK=${1:-$LOG_DST/devstack-config}
+
+    if [ ! -d "$CONFIG_DST_DEVSTACK" ]
+    then
+        mkdir -p "$CONFIG_DST_DEVSTACK" || emit_warning "L38: Failed to archive devstack configs"
+    fi
+
+    for i in cinder glance keystone neutron nova openvswitch
+    do
+        cp -r -L "/etc/$i" "$CONFIG_DST_DEVSTACK/$i" || continue
+    done
+    for file in `find "$CONFIG_DST_DEVSTACK/$i" -type f`
+    do
+        $GZIP $file
+    done
+
+    $GZIP -c /home/ubuntu/devstack/local.conf > "$CONFIG_DST_DEVSTACK/local.conf.gz"
+    $GZIP -c /opt/stack/tempest/etc/tempest.conf > "$CONFIG_DST_DEVSTACK/tempest.conf.gz"
+    df -h > "$CONFIG_DST_DEVSTACK/df.txt" 2>&1 && $GZIP "$CONFIG_DST_DEVSTACK/df.txt"
+    iptables-save > "$CONFIG_DST_DEVSTACK/iptables.txt" 2>&1 && $GZIP "$CONFIG_DST_DEVSTACK/iptables.txt"
+    dpkg-query -l > "$CONFIG_DST_DEVSTACK/dpkg-l.txt" 2>&1 && $GZIP "$CONFIG_DST_DEVSTACK/dpkg-l.txt"
+    pip freeze > "$CONFIG_DST_DEVSTACK/pip-freeze.txt" 2>&1 && $GZIP "$CONFIG_DST_DEVSTACK/pip-freeze.txt"
+    ps axwu > "$CONFIG_DST_DEVSTACK/pidstat.txt" 2>&1 && $GZIP "$CONFIG_DST_DEVSTACK/pidstat.txt"
+    ifconfig -a -v > "$CONFIG_DST_DEVSTACK/ifconfig.txt" 2>&1 && $GZIP "$CONFIG_DST_DEVSTACK/ifconfig.txt"
+    sudo ovs-vsctl -v show > "$CONFIG_DST_DEVSTACK/ovs_bridges.txt" 2>&1 && $GZIP "$CONFIG_DST_DEVSTACK/ovs_bridges.txt"
+}
+
+function archive_tempest_files() {
+    local TEMPEST_LOGS="/home/ubuntu/tempest"
+
+    for i in `ls -A $TEMPEST_LOGS`
+    do
+        $GZIP "$TEMPEST_LOGS/$i" -c > "$LOG_DST/$i.gz" || emit_error "L133: Failed to archive tempest logs"
+    done
+}
+
