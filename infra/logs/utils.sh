@@ -1,5 +1,4 @@
 #!/bin/bash
-set -e
 
 BASEDIR=$(dirname $0)
 LOG_DST="/home/ubuntu/aggregate"
