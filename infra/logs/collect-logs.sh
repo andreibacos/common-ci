@@ -60,15 +60,8 @@ emit_info "Collecting devstack configs"
 archive_devstack_configs
 emit_info "Collecting tempest files"
 archive_tempest_files
-# TODO Hyperv logs and configs
 
-# Archive everything and copy to logs server
+# Archive everything
 pushd $LOG_DST; tar -zcf "$LOG_DST.tar.gz" .; popd
-
-LOG_SERVER_DIR="/logs/$PROJECT/$CHANGE/$PATCHSET"
-
-ssh $SSH_OPTS -i $LOG_KEY $LOG_SERVER "if [ ! -d $LOG_SERVER_DIR ]; then mkdir -p $LOG_SERVER_DIR; else rm -rf $LOG_SERVER_DIR/*; fi"
-scp $SSH_OPTS -i $LOG_KEY "$LOG_DST.tar.gz" "$LOG_SERVER:$LOG_SERVER_DIR/aggregate.tar.gz"
-ssh $SSH_OPTS -i $LOG_KEY $LOG_SERVER "tar -zxf $LOG_SERVER_DIR/aggregate.tar.gz -C $LOG_SERVER_DIR/"
 
 
