@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+set +e
 
 BASEDIR=$(dirname $0)
 DEVSTACK_LOGS="/opt/stack/logs/screen"
