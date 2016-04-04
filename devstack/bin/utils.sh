@@ -1,5 +1,4 @@
 #!/bin/bash
-set -e
 
 function emit_error() {
     echo "ERROR: $1"
