@@ -24,7 +24,7 @@ function emit_info() {
 function run_wsman_cmd() {
     local host=$1
     local cmd=$2
-    $BASEDIR/wsmancmd.py -u $win_user -p $win_password -U https://$1:5986/wsman $cmd
+    $BASEDIR/wsmancmd.py -s -H $host -a certificate -c ~/.juju/ssl/winrm.crt -k ~/.juju/ssl/winrm.key $cmd
 }
 
 function get_win_files() {
