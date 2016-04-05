@@ -5,22 +5,14 @@ BASEDIR=$(dirname $0)
 DEVSTACK_LOGS="/opt/stack/logs/screen"
 DEVSTACK_LOG_DIR="/opt/stack/logs"
 
-HYPERV_LOGS="/openstack/logs"
 TEMPEST_LOGS="/home/ubuntu/tempest"
-HYPERV_CONFIGS="/openstack/config"
 
 LOG_DST="/home/ubuntu/aggregate"
 LOG_DST_DEVSTACK="$LOG_DST/devstack-logs"
-LOG_DST_HV="$LOG_DST/Hyper-V-logs"
 CONFIG_DST_DEVSTACK="$LOG_DST/devstack-config"
-CONFIG_DST_HV="$LOG_DST/Hyper-V-config"
-
-LOG_SERVER="root@logs.maas"
-LOG_KEY="/home/ubuntu/log.key"
 
 TAR="tar"
 GZIP="gzip -f"
-SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
 
 source $BASEDIR/utils.sh
 
