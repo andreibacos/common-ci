@@ -140,7 +140,7 @@ function archive_devstack_logs() {
     cp /var/log/openvswitch/* "$LOG_DST_DEVSTACK/openvswitch"
     $GZIP $LOG_DST_DEVSTACK/openvswitch/*
     for j in `ls -A /var/log/juju`; do
-        $GZIP /var/log/juju/$j > "$LOG_DST_DEVSTACK/$j.gz"
+        $GZIP -c /var/log/juju/$j > "$LOG_DST_DEVSTACK/$j.gz"
     done
 }
 
