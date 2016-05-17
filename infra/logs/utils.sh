@@ -37,7 +37,7 @@ function get_win_files() {
     smbclient "//$host/C\$" -c "prompt OFF; cd $remote_dir" -U "$win_user%$win_password"
     if [ $? -ne 0 ];then
         echo "Folder $remote_dir does not exists"
-        exit 0
+        return 0
     fi
     smbclient "//$host/C\$" -c "prompt OFF; recurse ON; lcd $local_dir; cd $remote_dir; mget *" -U "$win_user%$win_password"
 }
